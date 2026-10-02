@@ -88,6 +88,7 @@ fun PlacePickerSearchBar(
     active: Boolean,
     onActiveChange: (Boolean) -> Unit,
     onSearchClick: (query: String) -> Unit,
+    onCurrentLocationClick: () -> Unit,
     onPlaceClick: (Place) -> Unit,
     onSearchedPlaceClick: (SearchedPlace) -> Unit,
     onPlaceDeleteClick: (Place) -> Unit,
@@ -105,7 +106,11 @@ fun PlacePickerSearchBar(
     )
 
     SearchBar(
-        query = query,
+        query = if (!active && state.currentLocationSelected) {
+            stringResource(id = R.string.place_picker_current_location)
+        } else {
+            query
+        },
         onQueryChange = onQueryChange,
         onSearch = onSearchClick,
         active = active,
@@ -140,6 +145,8 @@ fun PlacePickerSearchBar(
                 SavedPlaces(
                     state = state.results,
                     loading = state.loading,
+                    currentLocationSelected = state.currentLocationSelected,
+                    onCurrentLocationClick = onCurrentLocationClick,
                     onPlaceClick = onPlaceClick,
                     onPlaceDeleteClick = onPlaceDeleteClick
                 )
