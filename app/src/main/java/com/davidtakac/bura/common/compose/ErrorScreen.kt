@@ -60,6 +60,21 @@ fun OutdatedErrorScreen(onTryAgainClick: () -> Unit, modifier: Modifier = Modifi
 }
 
 @Composable
+fun LocationUnavailableErrorScreen(onTryAgainClick: () -> Unit, modifier: Modifier = Modifier) {
+    ErrorScreen(
+        text = {
+            Text(stringResource(id = R.string.general_error_location_unavailable))
+        },
+        solution = {
+            Button(onClick = onTryAgainClick) {
+                Text(stringResource(id = R.string.general_btn_try_again))
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
 fun NoSelectedPlaceErrorScreen(
     onSelectPlaceClick: () -> Unit,
     modifier: Modifier = Modifier

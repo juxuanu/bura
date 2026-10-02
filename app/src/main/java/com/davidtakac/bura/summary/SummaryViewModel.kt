@@ -20,6 +20,7 @@ import com.davidtakac.bura.App
 import com.davidtakac.bura.common.util.launchCatching
 import com.davidtakac.bura.forecast.ForecastRepository
 import com.davidtakac.bura.forecast.units.SelectedUnitsRepository
+import com.davidtakac.bura.places.current.UpdateCurrentLocation
 import com.davidtakac.bura.places.selected.SelectedPlaceRepository
 import com.davidtakac.bura.summary.daily.DailySummary
 import com.davidtakac.bura.summary.daily.getDailySummary
@@ -52,6 +53,7 @@ class SummaryViewModel(
     private val placeRepo: SelectedPlaceRepository,
     private val unitsRepo: SelectedUnitsRepository,
     private val forecastRepo: ForecastRepository,
+    private val updateCurrentLocation: UpdateCurrentLocation,
     private val unexpectedErrorSetter: UnexpectedErrorSetter
 ) : ViewModel() {
     private val _state = MutableStateFlow<SummaryState>(SummaryState.Initial)
@@ -70,7 +72,10 @@ class SummaryViewModel(
     }
     
     private suspend fun getState(): SummaryState {
-        val location = placeRepo.getSelectedPlace()?.location ?: return SummaryState.NoSelectedPlace
+        val currentLocationSelected = placeRepo.isCurrentLocationSelected()
+        if (currentLocationSelected) updateCurrentLocation()
+        val location = placeRepo.getSelectedPlace()?.location
+            ?: return if (currentLocationSelected) SummaryState.LocationUnavailable else SummaryState.NoSelectedPlace
         val coords = location.coordinates
         val units = unitsRepo.getSelectedUnits()
         val now = Instant.now().atZone(location.timeZone)
@@ -166,6 +171,7 @@ class SummaryViewModel(
                     container.selectedPlaceRepo,
                     container.selectedUnitsRepo,
                     container.forecastRepo,
+                    container.updateCurrentLocation,
                     container.unexpectedErrorSetter
                 ) as T
             }
@@ -192,5 +198,6 @@ sealed interface SummaryState {
     data object FailedToDownload : SummaryState
     data object Outdated : SummaryState
     data object NoSelectedPlace : SummaryState
+    data object LocationUnavailable : SummaryState
     data object Initial : SummaryState
 }

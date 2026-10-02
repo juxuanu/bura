@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.R
 import com.davidtakac.bura.common.compose.FailedToDownloadErrorScreen
+import com.davidtakac.bura.common.compose.LocationUnavailableErrorScreen
 import com.davidtakac.bura.common.compose.NoSelectedPlaceErrorScreen
 import com.davidtakac.bura.common.compose.OutdatedErrorScreen
 import com.davidtakac.bura.common.compose.animateShimmerColorAsState
@@ -69,6 +70,7 @@ fun SummaryScreen(
     searchActive: Boolean,
     onSearchActiveChange: (Boolean) -> Unit,
     onSearch: (query: String) -> Unit,
+    onCurrentLocationClick: () -> Unit,
     onPlaceClick: (Place) -> Unit,
     onSearchedPlaceClick: (SearchedPlace) -> Unit,
     onPlaceDeleteClick: (Place) -> Unit,
@@ -84,6 +86,7 @@ fun SummaryScreen(
                 onQueryChange = onSearchQueryChange,
                 onQueryClearClick = onSearchQueryClearClick,
                 onSearchClick = onSearch,
+                onCurrentLocationClick = onCurrentLocationClick,
                 onPlaceClick = onPlaceClick,
                 onSearchedPlaceClick = onSearchedPlaceClick,
                 onPlaceDeleteClick = onPlaceDeleteClick,
@@ -127,6 +130,11 @@ fun SummaryScreen(
                 SummaryState.NoSelectedPlace -> NoSelectedPlaceErrorScreen(
                     onSelectPlaceClick = onSelectPlaceClick,
                     modifier = Modifier.fillMaxSize()
+                )
+
+                SummaryState.LocationUnavailable -> LocationUnavailableErrorScreen(
+                    modifier = Modifier.fillMaxSize(),
+                    onTryAgainClick = onTryAgainClick
                 )
             }
         }
