@@ -46,7 +46,7 @@ class PlacePickerViewModel(
     init {
         viewModelScope.launchCatching(unexpectedErrorSetter) {
             _state.value = _state.value.copy(
-                query = getSelectedPlaceNameOrBlank(),
+                query = getSelectedPlaceQuery(),
                 currentLocationSelected = selectedPlaceRepo.isCurrentLocationSelected(),
             )
         }
@@ -62,7 +62,7 @@ class PlacePickerViewModel(
         viewModelScope.launchCatching(unexpectedErrorSetter) {
             selectedPlaceRepo.selectCurrentLocation()
             _state.value = _state.value.copy(
-                query = "",
+                query = PlacePickerQuery.CurrentLocation,
                 active = false,
                 currentLocationSelected = true,
                 results = null,
@@ -94,11 +94,11 @@ class PlacePickerViewModel(
     }
 
     fun setQuery(query: String) {
-        _state.value = _state.value.copy(query = query)
+        _state.value = _state.value.copy(query = PlacePickerQuery.Text(query))
     }
 
     fun searchPlaces(languageCode: String) {
-        val trimmedQuery = _state.value.query.trim()
+        val trimmedQuery = (_state.value.query as? PlacePickerQuery.Text)?.text?.trim() ?: return
         viewModelScope.launchCatching(unexpectedErrorSetter) {
             _state.value = _state.value.copy(loading = true)
             val results = searchPlaces.invoke(trimmedQuery, languageCode)
@@ -127,7 +127,7 @@ class PlacePickerViewModel(
     private suspend fun _selectPlace(place: Place) {
         selectPlace.invoke(place)
         _state.value = _state.value.copy(
-            query = place.name,
+            query = PlacePickerQuery.Text(place.name),
             active = false,
             currentLocationSelected = false,
             searchedPlaceToEdit = null,
@@ -140,7 +140,7 @@ class PlacePickerViewModel(
             _state.value = _state.value.copy(
                 loading = true,
                 active = true,
-                query = "",
+                query = PlacePickerQuery.Text(""),
             )
             _state.value = _state.value.copy(
                 results = PlacePickerResults.SavedPlaces(getSavedPlaces.invoke(Instant.now())),
@@ -150,14 +150,18 @@ class PlacePickerViewModel(
             _state.value = _state.value.copy(
                 loading = false,
                 active = false,
-                query = getSelectedPlaceNameOrBlank(),
+                query = getSelectedPlaceQuery(),
                 results = null,
             )
         }
     }
 
-    private suspend fun getSelectedPlaceNameOrBlank() =
-        selectedPlaceRepo.getSelectedPlace()?.name ?: ""
+    private suspend fun getSelectedPlaceQuery(): PlacePickerQuery =
+        if (selectedPlaceRepo.isCurrentLocationSelected()) {
+            PlacePickerQuery.CurrentLocation
+        } else {
+            PlacePickerQuery.Text(selectedPlaceRepo.getSelectedPlace()?.name ?: "")
+        }
 
     companion object {
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
@@ -179,7 +183,7 @@ class PlacePickerViewModel(
 
 data class PlacePickerState(
     val loading: Boolean = false,
-    val query: String = "",
+    val query: PlacePickerQuery = PlacePickerQuery.Text(""),
     val active: Boolean = false,
     val currentLocationSelected: Boolean = false,
     val searchedPlaceToEdit: SearchedPlace? = null,
@@ -189,4 +193,10 @@ data class PlacePickerState(
 sealed interface PlacePickerResults {
     data class SavedPlaces(val places: List<SavedPlace>) : PlacePickerResults
     data class SearchedPlaces(val query: String, val places: List<SearchedPlace>?) : PlacePickerResults
+}
+
+sealed interface PlacePickerQuery {
+    data class Text(val text: String) : PlacePickerQuery
+    // Labeled by the UI
+    data object CurrentLocation : PlacePickerQuery
 }

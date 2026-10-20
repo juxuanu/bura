@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.R
 import com.davidtakac.bura.places.Place
+import com.davidtakac.bura.places.picker.PlacePickerQuery
 import com.davidtakac.bura.places.picker.PlacePickerResults
 import com.davidtakac.bura.places.picker.PlacePickerState
 import com.davidtakac.bura.places.saved.compose.SavedPlaces
@@ -82,7 +83,7 @@ private val AnimationExitFloatSpec: FiniteAnimationSpec<Dp> = tween(
 @Composable
 fun PlacePickerSearchBar(
     state: PlacePickerState,
-    query: String,
+    query: PlacePickerQuery,
     onQueryChange: (query: String) -> Unit,
     onQueryClearClick: () -> Unit,
     active: Boolean,
@@ -106,10 +107,9 @@ fun PlacePickerSearchBar(
     )
 
     SearchBar(
-        query = if (!active && state.currentLocationSelected) {
-            stringResource(id = R.string.place_picker_current_location)
-        } else {
-            query
+        query = when (query) {
+            is PlacePickerQuery.Text -> query.text
+            PlacePickerQuery.CurrentLocation -> stringResource(id = R.string.place_picker_current_location)
         },
         onQueryChange = onQueryChange,
         onSearch = onSearchClick,

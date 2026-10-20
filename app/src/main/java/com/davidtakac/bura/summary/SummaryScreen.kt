@@ -38,6 +38,7 @@ import com.davidtakac.bura.common.compose.NoSelectedPlaceErrorScreen
 import com.davidtakac.bura.common.compose.OutdatedErrorScreen
 import com.davidtakac.bura.common.compose.animateShimmerColorAsState
 import com.davidtakac.bura.places.Place
+import com.davidtakac.bura.places.picker.PlacePickerQuery
 import com.davidtakac.bura.places.picker.PlacePickerState
 import com.davidtakac.bura.places.picker.compose.PlacePickerSearchBar
 import com.davidtakac.bura.places.search.SearchedPlace
@@ -66,7 +67,7 @@ fun SummaryScreen(
     onPrecipitationClick: () -> Unit,
 
     pickerState: PlacePickerState,
-    searchQuery: String,
+    searchQuery: PlacePickerQuery,
     onSearchQueryChange: (query: String) -> Unit,
     onSearchQueryClearClick: () -> Unit,
     searchActive: Boolean,
