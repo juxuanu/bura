@@ -19,6 +19,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.CancellationSignal
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import com.davidtakac.bura.places.Coordinates
@@ -37,17 +38,25 @@ private val preferredProviders = listOf(
 )
 
 class DeviceLocator(private val context: Context) {
+    /**
+     * Returns the newest last known location if it's younger than [maxLastKnownAge], otherwise
+     * waits for a fresh fix, falling back to the newest last known location.
+     */
     @SuppressLint("MissingPermission")
-    suspend fun locate(): Coordinates? {
+    suspend fun locate(maxLastKnownAge: Duration): Coordinates? {
         val permission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (permission != PackageManager.PERMISSION_GRANTED) return null
 
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
         // Only returns providers that are enabled and allowed by the granted permissions
         val providers = manager.getProviders(true)
-        val location = preferredProviders.firstOrNull(providers::contains)
-            ?.let { withTimeoutOrNull(fixTimeout.toMillis()) { manager.awaitCurrentLocation(it) } }
-            ?: providers.mapNotNull(manager::getLastKnownLocation).maxByOrNull { it.elapsedRealtimeNanos }
+        val lastKnown = providers.mapNotNull(manager::getLastKnownLocation).maxByOrNull { it.elapsedRealtimeNanos }
+        // With approximate location, Android limits fresh fixes to one every 10 minutes, so
+        // waiting for one would often time out while a recent enough location is already known
+        val location = lastKnown?.takeIf { it.age < maxLastKnownAge }
+            ?: preferredProviders.firstOrNull(providers::contains)
+                ?.let { withTimeoutOrNull(fixTimeout.toMillis()) { manager.awaitCurrentLocation(it) } }
+            ?: lastKnown
         return location?.let { Coordinates(it.latitude, it.longitude) }
     }
 
@@ -63,4 +72,7 @@ class DeviceLocator(private val context: Context) {
                 ContextCompat.getMainExecutor(context)
             ) { cont.resume(it) }
         }
+
+    private val Location.age: Duration
+        get() = Duration.ofNanos(SystemClock.elapsedRealtimeNanos() - elapsedRealtimeNanos)
 }

@@ -35,7 +35,8 @@ class UpdateCurrentLocation(
     suspend operator fun invoke(now: Instant) {
         val current = currentLocationRepo.getCurrentLocation()
         if (!shouldLocate(current, now)) return
-        val fix = locator.locate() ?: return
+        // A location known to the device that is younger than the interval is as good as a new one
+        val fix = locator.locate(maxLastKnownAge = minUpdateInterval) ?: return
         if (current != null && !hasMoved(current, fix)) {
             // Keep the location and its forecast, but remember it's still up to date
             currentLocationRepo.setCurrentLocation(current.copy(updatedAt = now))
