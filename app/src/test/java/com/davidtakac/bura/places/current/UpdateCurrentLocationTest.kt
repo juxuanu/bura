@@ -33,33 +33,34 @@ class UpdateCurrentLocationTest {
         CurrentLocation(Location(ZoneId.of("Europe/Madrid"), coordinates), updatedAt)
 
     @Test
-    fun `updates when there is no current location`() {
-        assertTrue(shouldUpdate(current = null, fix = barcelona, now = updatedAt))
+    fun `locates when there is no current location`() {
+        assertTrue(shouldLocate(current = null, now = updatedAt))
     }
 
     @Test
-    fun `updates when far away and enough time passed`() {
-        val current = currentAt(barcelona)
-        assertTrue(shouldUpdate(current, fix = sabadell, now = updatedAt + Duration.ofMinutes(30)))
+    fun `locates when enough time passed`() {
+        assertTrue(shouldLocate(currentAt(barcelona), now = updatedAt + Duration.ofMinutes(30)))
     }
 
     @Test
-    fun `keeps current location when far away but updated recently`() {
-        val current = currentAt(barcelona)
-        assertFalse(shouldUpdate(current, fix = sabadell, now = updatedAt + Duration.ofMinutes(29)))
+    fun `does not locate when updated recently`() {
+        assertFalse(shouldLocate(currentAt(barcelona), now = updatedAt + Duration.ofMinutes(29)))
     }
 
     @Test
-    fun `keeps current location when nearby`() {
-        val current = currentAt(barcelona)
-        assertFalse(shouldUpdate(current, fix = badalona, now = updatedAt + Duration.ofDays(1)))
+    fun `moved when far away`() {
+        assertTrue(hasMoved(currentAt(barcelona), fix = sabadell))
+    }
+
+    @Test
+    fun `not moved when nearby`() {
+        assertFalse(hasMoved(currentAt(barcelona), fix = badalona))
     }
 
     @Test
     fun `longitude distance shrinks away from the equator`() {
-        val now = updatedAt + Duration.ofDays(1)
         // 0.2 degrees of longitude is ~22 km at the equator, but ~11 km at 60 degrees latitude
-        assertTrue(shouldUpdate(currentAt(Coordinates(0.0, 0.0)), Coordinates(0.0, 0.2), now))
-        assertFalse(shouldUpdate(currentAt(Coordinates(60.0, 0.0)), Coordinates(60.0, 0.2), now))
+        assertTrue(hasMoved(currentAt(Coordinates(0.0, 0.0)), fix = Coordinates(0.0, 0.2)))
+        assertFalse(hasMoved(currentAt(Coordinates(60.0, 0.0)), fix = Coordinates(60.0, 0.2)))
     }
 }

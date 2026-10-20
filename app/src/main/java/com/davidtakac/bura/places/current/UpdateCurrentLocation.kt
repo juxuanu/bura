@@ -34,8 +34,13 @@ class UpdateCurrentLocation(
 ) {
     suspend operator fun invoke(now: Instant) {
         val current = currentLocationRepo.getCurrentLocation()
+        if (!shouldLocate(current, now)) return
         val fix = locator.locate() ?: return
-        if (!shouldUpdate(current, fix, now)) return
+        if (current != null && !hasMoved(current, fix)) {
+            // Keep the location and its forecast, but remember it's still up to date
+            currentLocationRepo.setCurrentLocation(current.copy(updatedAt = now))
+            return
+        }
         // The device's time zone is the one where the user is at the time of the fix
         val location = Location(timeZone = ZoneId.systemDefault(), coordinates = fix)
         currentLocationRepo.setCurrentLocation(CurrentLocation(location, updatedAt = now))
@@ -44,12 +49,11 @@ class UpdateCurrentLocation(
     }
 }
 
-fun shouldUpdate(current: CurrentLocation?, fix: Coordinates, now: Instant): Boolean {
-    if (current == null) return true
-    val waitedLongEnough = Duration.between(current.updatedAt, now) >= minUpdateInterval
-    val movedFarEnough = current.location.coordinates.distanceKmTo(fix) >= MIN_UPDATE_DISTANCE_KM
-    return waitedLongEnough && movedFarEnough
-}
+fun shouldLocate(current: CurrentLocation?, now: Instant): Boolean =
+    current == null || Duration.between(current.updatedAt, now) >= minUpdateInterval
+
+fun hasMoved(current: CurrentLocation, fix: Coordinates): Boolean =
+    current.location.coordinates.distanceKmTo(fix) >= MIN_UPDATE_DISTANCE_KM
 
 // Equirectangular approximation, accurate enough at the distances that matter here
 private fun Coordinates.distanceKmTo(other: Coordinates): Double {
