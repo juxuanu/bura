@@ -74,15 +74,18 @@ class SummaryViewModel(
         }
     }
     
-    private suspend fun getState(): SummaryState {
-        if (placeRepo.isCurrentLocationSelected()) {
-            _locating.value = true
-            try {
-                updateCurrentLocation(Instant.now())
-            } finally {
-                _locating.value = false
-            }
+    private suspend fun updateCurrentLocationIfSelected() {
+        if (!placeRepo.isCurrentLocationSelected()) return
+        _locating.value = true
+        try {
+            updateCurrentLocation(Instant.now())
+        } finally {
+            _locating.value = false
         }
+    }
+
+    private suspend fun getState(): SummaryState {
+        updateCurrentLocationIfSelected()
         val location = placeRepo.getSelectedPlace()?.location ?: return SummaryState.NoSelectedPlace
         val coords = location.coordinates
         val units = unitsRepo.getSelectedUnits()
