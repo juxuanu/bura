@@ -79,7 +79,6 @@ fun SummaryDestination(
         onPrecipitationClick = onPrecipitationClick,
 
         pickerState = pickerState,
-        locating = summaryVM.locating.collectAsState().value,
         searchQuery = pickerState.query,
         onSearchQueryChange = placePickerVM::setQuery,
         searchActive = pickerState.active,

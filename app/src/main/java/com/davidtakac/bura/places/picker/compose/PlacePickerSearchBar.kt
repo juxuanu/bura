@@ -82,7 +82,6 @@ private val AnimationExitFloatSpec: FiniteAnimationSpec<Dp> = tween(
 @Composable
 fun PlacePickerSearchBar(
     state: PlacePickerState,
-    locating: Boolean,
     query: String,
     onQueryChange: (query: String) -> Unit,
     onQueryClearClick: () -> Unit,
@@ -108,7 +107,7 @@ fun PlacePickerSearchBar(
 
     SearchBar(
         query = if (!active && state.currentLocationSelected) {
-            stringResource(id = if (locating) R.string.place_picker_locating else R.string.place_picker_current_location)
+            stringResource(id = R.string.place_picker_current_location)
         } else {
             query
         },
