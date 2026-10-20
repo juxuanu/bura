@@ -21,6 +21,7 @@ import com.davidtakac.bura.forecast.cache.ForecastCacher
 import com.davidtakac.bura.forecast.download.ForecastDownloader
 import com.davidtakac.bura.forecast.download.InternetChecker
 import com.davidtakac.bura.forecast.units.SelectedUnitsRepository
+import com.davidtakac.bura.places.current.CurrentLocationRepository
 import com.davidtakac.bura.places.current.DeviceLocator
 import com.davidtakac.bura.places.current.UpdateCurrentLocation
 import com.davidtakac.bura.places.saved.DeletePlace
@@ -57,13 +58,14 @@ class AppContainer(private val appContext: Context) {
         )
     }
 
-    val selectedPlaceRepo by lazy { SelectedPlaceRepository(prefs, savedPlacesRepo) }
+    val selectedPlaceRepo by lazy { SelectedPlaceRepository(prefs, savedPlacesRepo, currentLocationRepo) }
     val selectedUnitsRepo by lazy { SelectedUnitsRepository(prefs) }
 
     private val savedPlacesRepo by lazy { SavedPlacesRepository(root) }
+    private val currentLocationRepo by lazy { CurrentLocationRepository(root) }
     val getSavedPlaces get() = GetSavedPlaces(selectedUnitsRepo, selectedPlaceRepo, savedPlacesRepo, forecastRepo)
     val searchPlaces get() = SearchPlaces(userAgent)
     val selectPlace get() = SelectPlace(selectedPlaceRepo, savedPlacesRepo)
     val deletePlace get() = DeletePlace(savedPlacesRepo, forecastCacher)
-    val updateCurrentLocation get() = UpdateCurrentLocation(DeviceLocator(appContext), selectedPlaceRepo, forecastCacher)
+    val updateCurrentLocation get() = UpdateCurrentLocation(DeviceLocator(appContext), currentLocationRepo, forecastCacher)
 }

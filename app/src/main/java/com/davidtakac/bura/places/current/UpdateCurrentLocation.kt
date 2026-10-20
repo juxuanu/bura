@@ -14,7 +14,6 @@ package com.davidtakac.bura.places.current
 
 import com.davidtakac.bura.forecast.cache.ForecastCacher
 import com.davidtakac.bura.places.Coordinates
-import com.davidtakac.bura.places.selected.SelectedPlaceRepository
 import java.time.Duration
 import java.time.Instant
 import kotlin.math.cos
@@ -28,14 +27,14 @@ private const val EARTH_RADIUS_KM = 6371.0
 
 class UpdateCurrentLocation(
     private val locator: DeviceLocator,
-    private val selectedPlaceRepo: SelectedPlaceRepository,
+    private val currentLocationRepo: CurrentLocationRepository,
     private val forecastCacher: ForecastCacher,
 ) {
     suspend operator fun invoke(now: Instant) {
-        val current = selectedPlaceRepo.getCurrentLocation()
+        val current = currentLocationRepo.getCurrentLocation()
         val fix = locator.locate() ?: return
         if (!shouldUpdate(current, fix, now)) return
-        selectedPlaceRepo.setCurrentLocation(CurrentLocation(fix, updatedAt = now))
+        currentLocationRepo.setCurrentLocation(CurrentLocation(fix, updatedAt = now))
         // The previous location's forecast won't be used again, don't let them pile up while traveling
         if (current != null) forecastCacher.delete(current.coordinates)
     }
