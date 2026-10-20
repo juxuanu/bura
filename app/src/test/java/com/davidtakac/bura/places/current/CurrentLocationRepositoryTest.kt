@@ -13,6 +13,7 @@
 package com.davidtakac.bura.places.current
 
 import com.davidtakac.bura.places.Coordinates
+import com.davidtakac.bura.places.Location
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -20,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.time.Instant
+import java.time.ZoneId
 
 class CurrentLocationRepositoryTest {
     @get:Rule
@@ -32,7 +34,10 @@ class CurrentLocationRepositoryTest {
 
     @Test
     fun `persists current location`() = runTest {
-        val location = CurrentLocation(Coordinates(41.39, 2.17), updatedAt = Instant.ofEpochSecond(1_700_000_000))
+        val location = CurrentLocation(
+            location = Location(ZoneId.of("Europe/Madrid"), Coordinates(41.39, 2.17)),
+            updatedAt = Instant.ofEpochSecond(1_700_000_000)
+        )
         CurrentLocationRepository(root.root).setCurrentLocation(location)
         assertEquals(location, CurrentLocationRepository(root.root).getCurrentLocation())
     }

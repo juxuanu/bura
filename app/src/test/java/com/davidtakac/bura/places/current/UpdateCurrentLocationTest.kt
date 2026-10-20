@@ -13,11 +13,13 @@
 package com.davidtakac.bura.places.current
 
 import com.davidtakac.bura.places.Coordinates
+import com.davidtakac.bura.places.Location
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 
 class UpdateCurrentLocationTest {
     private val barcelona = Coordinates(41.39, 2.17)
@@ -27,6 +29,9 @@ class UpdateCurrentLocationTest {
     private val badalona = Coordinates(41.45, 2.25)
     private val updatedAt = Instant.ofEpochSecond(0)
 
+    private fun currentAt(coordinates: Coordinates) =
+        CurrentLocation(Location(ZoneId.of("Europe/Madrid"), coordinates), updatedAt)
+
     @Test
     fun `updates when there is no current location`() {
         assertTrue(shouldUpdate(current = null, fix = barcelona, now = updatedAt))
@@ -34,19 +39,19 @@ class UpdateCurrentLocationTest {
 
     @Test
     fun `updates when far away and enough time passed`() {
-        val current = CurrentLocation(barcelona, updatedAt)
+        val current = currentAt(barcelona)
         assertTrue(shouldUpdate(current, fix = sabadell, now = updatedAt + Duration.ofMinutes(30)))
     }
 
     @Test
     fun `keeps current location when far away but updated recently`() {
-        val current = CurrentLocation(barcelona, updatedAt)
+        val current = currentAt(barcelona)
         assertFalse(shouldUpdate(current, fix = sabadell, now = updatedAt + Duration.ofMinutes(29)))
     }
 
     @Test
     fun `keeps current location when nearby`() {
-        val current = CurrentLocation(barcelona, updatedAt)
+        val current = currentAt(barcelona)
         assertFalse(shouldUpdate(current, fix = badalona, now = updatedAt + Duration.ofDays(1)))
     }
 
@@ -54,7 +59,7 @@ class UpdateCurrentLocationTest {
     fun `longitude distance shrinks away from the equator`() {
         val now = updatedAt + Duration.ofDays(1)
         // 0.2 degrees of longitude is ~22 km at the equator, but ~11 km at 60 degrees latitude
-        assertTrue(shouldUpdate(CurrentLocation(Coordinates(0.0, 0.0), updatedAt), Coordinates(0.0, 0.2), now))
-        assertFalse(shouldUpdate(CurrentLocation(Coordinates(60.0, 0.0), updatedAt), Coordinates(60.0, 0.2), now))
+        assertTrue(shouldUpdate(currentAt(Coordinates(0.0, 0.0)), Coordinates(0.0, 0.2), now))
+        assertFalse(shouldUpdate(currentAt(Coordinates(60.0, 0.0)), Coordinates(60.0, 0.2), now))
     }
 }

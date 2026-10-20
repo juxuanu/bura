@@ -14,8 +14,10 @@ package com.davidtakac.bura.places.current
 
 import com.davidtakac.bura.forecast.cache.ForecastCacher
 import com.davidtakac.bura.places.Coordinates
+import com.davidtakac.bura.places.Location
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 import kotlin.math.cos
 import kotlin.math.sqrt
 
@@ -34,16 +36,18 @@ class UpdateCurrentLocation(
         val current = currentLocationRepo.getCurrentLocation()
         val fix = locator.locate() ?: return
         if (!shouldUpdate(current, fix, now)) return
-        currentLocationRepo.setCurrentLocation(CurrentLocation(fix, updatedAt = now))
+        // The device's time zone is the one where the user is at the time of the fix
+        val location = Location(timeZone = ZoneId.systemDefault(), coordinates = fix)
+        currentLocationRepo.setCurrentLocation(CurrentLocation(location, updatedAt = now))
         // The previous location's forecast won't be used again, don't let them pile up while traveling
-        if (current != null) forecastCacher.delete(current.coordinates)
+        if (current != null) forecastCacher.delete(current.location.coordinates)
     }
 }
 
 fun shouldUpdate(current: CurrentLocation?, fix: Coordinates, now: Instant): Boolean {
     if (current == null) return true
     val waitedLongEnough = Duration.between(current.updatedAt, now) >= minUpdateInterval
-    val movedFarEnough = current.coordinates.distanceKmTo(fix) >= MIN_UPDATE_DISTANCE_KM
+    val movedFarEnough = current.location.coordinates.distanceKmTo(fix) >= MIN_UPDATE_DISTANCE_KM
     return waitedLongEnough && movedFarEnough
 }
 

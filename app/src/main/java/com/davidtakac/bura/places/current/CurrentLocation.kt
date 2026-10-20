@@ -12,10 +12,10 @@
 
 package com.davidtakac.bura.places.current
 
-import com.davidtakac.bura.places.Coordinates
+import com.davidtakac.bura.places.Location
 import java.time.Instant
 
 data class CurrentLocation(
-    val coordinates: Coordinates,
+    val location: Location,
     val updatedAt: Instant
 )

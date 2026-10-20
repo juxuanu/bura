@@ -13,11 +13,13 @@
 package com.davidtakac.bura.places.current
 
 import com.davidtakac.bura.places.Coordinates
+import com.davidtakac.bura.places.Location
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.time.Instant
+import java.time.ZoneId
 
 class CurrentLocationRepository(private val root: File) {
     suspend fun getCurrentLocation(): CurrentLocation? =
@@ -26,20 +28,24 @@ class CurrentLocationRepository(private val root: File) {
             if (!file.exists()) return@withContext null
             val json = JSONObject(file.readText())
             CurrentLocation(
-                coordinates = Coordinates(
-                    latitude = json.getDouble("latitude"),
-                    longitude = json.getDouble("longitude")
+                location = Location(
+                    timeZone = ZoneId.of(json.getString("timeZone")),
+                    coordinates = Coordinates(
+                        latitude = json.getDouble("latitude"),
+                        longitude = json.getDouble("longitude")
+                    )
                 ),
                 updatedAt = Instant.ofEpochSecond(json.getLong("updatedAt"))
             )
         }
 
-    suspend fun setCurrentLocation(location: CurrentLocation) =
+    suspend fun setCurrentLocation(current: CurrentLocation) =
         withContext(Dispatchers.IO) {
             val json = JSONObject().apply {
-                put("latitude", location.coordinates.latitude)
-                put("longitude", location.coordinates.longitude)
-                put("updatedAt", location.updatedAt.epochSecond)
+                put("timeZone", current.location.timeZone.id)
+                put("latitude", current.location.coordinates.latitude)
+                put("longitude", current.location.coordinates.longitude)
+                put("updatedAt", current.updatedAt.epochSecond)
             }
             getFile().writeText(json.toString())
         }

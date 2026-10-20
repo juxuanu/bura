@@ -19,7 +19,6 @@ import com.davidtakac.bura.places.Location
 import com.davidtakac.bura.places.Place
 import com.davidtakac.bura.places.current.CurrentLocationRepository
 import com.davidtakac.bura.places.saved.SavedPlacesRepository
-import java.time.ZoneId
 
 private const val SELECTED_PLACE_KEY = "selected_place_coords"
 // Stored as the selected place instead of coordinates when following the device location
@@ -42,14 +41,14 @@ class SelectedPlaceRepository(
     suspend fun getSelectedPlace(): Place? {
         val selected = prefs.getString(SELECTED_PLACE_KEY, null) ?: return null
         if (selected == CURRENT_LOCATION) {
-            return currentLocationRepository.getCurrentLocation()?.coordinates?.let(::currentLocationPlace)
+            return currentLocationRepository.getCurrentLocation()?.location?.let(::currentLocationPlace)
         }
         return savedPlacesRepository.getSavedPlace(Coordinates.fromId(selected))
     }
 }
 
-// Unnamed because the UI labels it. The device's time zone is where the user is right now.
-private fun currentLocationPlace(coords: Coordinates) = Place(
+// Unnamed because the UI labels it
+private fun currentLocationPlace(location: Location) = Place(
     name = "",
     admin1 = null,
     admin2 = null,
@@ -57,5 +56,5 @@ private fun currentLocationPlace(coords: Coordinates) = Place(
     admin4 = null,
     countryCode = null,
     countryName = null,
-    location = Location(timeZone = ZoneId.systemDefault(), coordinates = coords)
+    location = location
 )
