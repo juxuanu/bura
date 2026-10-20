@@ -12,13 +12,10 @@
 
 package com.davidtakac.bura.places.saved.compose
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
@@ -32,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -74,7 +70,7 @@ fun SavedPlaces(
                 selected = currentLocationSelected,
                 onClick = onCurrentLocationClick,
                 modifier = Modifier
-                    .padding(top = 8.dp)
+                    .padding(horizontal = horizontalPadding, vertical = 16.dp)
                     .fillMaxWidth()
             )
             HorizontalDivider()
@@ -107,28 +103,6 @@ fun SavedPlaces(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun CurrentLocationItem(selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = horizontalPadding, vertical = 16.dp)
-    ) {
-        Icon(
-            painter = painterResource(id = if (selected) R.drawable.location_on else R.drawable.navigation),
-            contentDescription = null,
-            modifier = Modifier
-                .padding(end = 8.dp)
-                .size(20.dp)
-        )
-        Text(
-            text = stringResource(id = R.string.place_picker_current_location),
-            style = MaterialTheme.typography.titleMedium
-        )
     }
 }
 
