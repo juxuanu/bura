@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.davidtakac.bura.App
 import com.davidtakac.bura.common.util.launchCatching
 import com.davidtakac.bura.places.Place
+import com.davidtakac.bura.places.current.CurrentLocationError
 import com.davidtakac.bura.places.current.CurrentLocationRepository
 import com.davidtakac.bura.places.saved.DeletePlace
 import com.davidtakac.bura.places.saved.GetSavedPlaces
@@ -50,12 +51,11 @@ class PlacePickerViewModel(
             _state.value = _state.value.copy(
                 query = getSelectedPlaceQuery(),
                 currentLocationSelected = selectedPlaceRepo.isCurrentLocationSelected(),
-                currentLocationUpdatedAt = getCurrentLocationUpdatedAt(),
-            )
+            ).withCurrentLocation()
         }
         viewModelScope.launchCatching(unexpectedErrorSetter) {
             currentLocationRepo.changes.collect {
-                _state.value = _state.value.copy(currentLocationUpdatedAt = getCurrentLocationUpdatedAt())
+                _state.value = _state.value.withCurrentLocation()
             }
         }
     }
@@ -73,9 +73,8 @@ class PlacePickerViewModel(
                 query = PlacePickerQuery.CurrentLocation,
                 active = false,
                 currentLocationSelected = true,
-                currentLocationUpdatedAt = getCurrentLocationUpdatedAt(),
                 results = null,
-            )
+            ).withCurrentLocation()
         }
     }
 
@@ -153,9 +152,8 @@ class PlacePickerViewModel(
             )
             _state.value = _state.value.copy(
                 results = PlacePickerResults.SavedPlaces(getSavedPlaces.invoke(Instant.now())),
-                currentLocationUpdatedAt = getCurrentLocationUpdatedAt(),
                 loading = false,
-            )
+            ).withCurrentLocation()
         } else {
             _state.value = _state.value.copy(
                 loading = false,
@@ -166,8 +164,10 @@ class PlacePickerViewModel(
         }
     }
 
-    private suspend fun getCurrentLocationUpdatedAt() =
-        currentLocationRepo.getCurrentLocation()?.updatedAt
+    private suspend fun PlacePickerState.withCurrentLocation() = copy(
+        currentLocationUpdatedAt = currentLocationRepo.getCurrentLocation()?.updatedAt,
+        currentLocationError = currentLocationRepo.getError(),
+    )
 
     private suspend fun getSelectedPlaceQuery(): PlacePickerQuery =
         if (selectedPlaceRepo.isCurrentLocationSelected()) {
@@ -201,6 +201,8 @@ data class PlacePickerState(
     val active: Boolean = false,
     val currentLocationSelected: Boolean = false,
     val currentLocationUpdatedAt: Instant? = null,
+    // Only set if the current location is older than the update interval
+    val currentLocationError: CurrentLocationError? = null,
     val searchedPlaceToEdit: SearchedPlace? = null,
     val results: PlacePickerResults? = null
 )

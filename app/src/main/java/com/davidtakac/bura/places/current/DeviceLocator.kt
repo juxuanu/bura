@@ -40,15 +40,23 @@ private val preferredProviders = listOf(
 
 data class Fix(val coordinates: Coordinates, val time: Instant)
 
-class DeviceLocator(private val context: Context) {
+interface Locator {
+    fun hasPermission(): Boolean
+    suspend fun locate(maxLastKnownAge: Duration): Fix?
+}
+
+class DeviceLocator(private val context: Context) : Locator {
+    override fun hasPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+
     /**
      * Returns the newest last known location if it's younger than [maxLastKnownAge], otherwise
      * waits for a fresh fix, falling back to the newest last known location.
      */
     @SuppressLint("MissingPermission")
-    suspend fun locate(maxLastKnownAge: Duration): Fix? {
-        val permission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (permission != PackageManager.PERMISSION_GRANTED) return null
+    override suspend fun locate(maxLastKnownAge: Duration): Fix? {
+        if (!hasPermission()) return null
 
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
         // Only returns providers that are enabled and allowed by the granted permissions

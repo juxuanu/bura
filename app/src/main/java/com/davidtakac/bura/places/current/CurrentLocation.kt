@@ -20,3 +20,9 @@ data class CurrentLocation(
     // When the device was last fixed at this location
     val updatedAt: Instant
 )
+
+// Why the current location couldn't be updated
+enum class CurrentLocationError {
+    PermissionDenied,
+    Unavailable
+}

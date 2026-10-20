@@ -29,6 +29,16 @@ class CurrentLocationRepository(private val root: File) {
     // The current location is updated when the summary refreshes, not where it's shown
     val changes: Flow<Unit> = _changes
 
+    // Only kept in memory, the app locates again after it restarts anyway
+    private var error: CurrentLocationError? = null
+
+    fun getError(): CurrentLocationError? = error
+
+    fun setError(error: CurrentLocationError?) {
+        this.error = error
+        _changes.tryEmit(Unit)
+    }
+
     suspend fun getCurrentLocation(): CurrentLocation? =
         withContext(Dispatchers.IO) {
             val file = getFile()

@@ -28,27 +28,34 @@ private val minUpdateInterval = Duration.ofMinutes(30)
 private const val EARTH_RADIUS_KM = 6371.0
 
 class UpdateCurrentLocation(
-    private val locator: DeviceLocator,
+    private val locator: Locator,
     private val currentLocationRepo: CurrentLocationRepository,
     private val forecastCacher: ForecastCacher,
 ) {
     suspend operator fun invoke(now: Instant) {
         val current = currentLocationRepo.getCurrentLocation()
         if (!shouldLocate(current, now)) return
+        currentLocationRepo.setError(update(current))
+    }
+
+    // Returns why the current location couldn't be updated, if it couldn't
+    private suspend fun update(current: CurrentLocation?): CurrentLocationError? {
+        if (!locator.hasPermission()) return CurrentLocationError.PermissionDenied
         // A location known to the device that is younger than the interval is as good as a new one
-        val fix = locator.locate(maxLastKnownAge = minUpdateInterval) ?: return
+        val fix = locator.locate(maxLastKnownAge = minUpdateInterval) ?: return CurrentLocationError.Unavailable
         // A last known location can be older than the current one
-        if (current != null && !fix.time.isAfter(current.updatedAt)) return
+        if (current != null && !fix.time.isAfter(current.updatedAt)) return CurrentLocationError.Unavailable
         if (current != null && !hasMoved(current, fix.coordinates)) {
             // Keep the location and its forecast, but remember it's still up to date
             currentLocationRepo.setCurrentLocation(current.copy(updatedAt = fix.time))
-            return
+            return null
         }
         // The device's time zone is the one where the user is at the time of the fix
         val location = Location(timeZone = ZoneId.systemDefault(), coordinates = fix.coordinates)
         currentLocationRepo.setCurrentLocation(CurrentLocation(location, updatedAt = fix.time))
         // The previous location's forecast won't be used again, don't let them pile up while traveling
         if (current != null) forecastCacher.delete(current.location.coordinates)
+        return null
     }
 }
 

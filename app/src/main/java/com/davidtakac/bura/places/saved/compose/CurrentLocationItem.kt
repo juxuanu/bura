@@ -18,20 +18,28 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.R
 import com.davidtakac.bura.common.compose.relativeTimeString
+import com.davidtakac.bura.places.current.CurrentLocationError
 import com.davidtakac.bura.theme.AppTheme
 import java.time.Instant
 
@@ -39,9 +47,15 @@ import java.time.Instant
 fun CurrentLocationItem(
     selected: Boolean,
     updatedAt: Instant?,
+    error: CurrentLocationError?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showError by remember { mutableStateOf(false) }
+    if (showError && error != null) {
+        CurrentLocationErrorDialog(error = error, onDismiss = { showError = false })
+    }
+
     Column(
         Modifier
             .clickable(onClick = onClick)
@@ -62,14 +76,63 @@ fun CurrentLocationItem(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        updatedAt?.let {
-            Text(
-                text = relativeTimeString(it),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1
-            )
+        if (updatedAt != null || error != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                updatedAt?.let {
+                    Text(
+                        text = relativeTimeString(it),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1
+                    )
+                }
+                error?.let {
+                    Icon(
+                        painter = painterResource(id = R.drawable.warning),
+                        contentDescription = stringResource(id = R.string.place_picker_automatic_location_error_title),
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .size(16.dp)
+                            .clickable { showError = true }
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+fun CurrentLocationErrorDialog(error: CurrentLocationError, onDismiss: () -> Unit) {
+    AlertDialog(
+        icon = {
+            Icon(
+                painter = painterResource(id = R.drawable.warning),
+                contentDescription = null
+            )
+        },
+        title = {
+            Text(
+                text = stringResource(id = R.string.place_picker_automatic_location_error_title),
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(
+                    id = when (error) {
+                        CurrentLocationError.PermissionDenied -> R.string.place_picker_automatic_location_error_permission_denied
+                        CurrentLocationError.Unavailable -> R.string.place_picker_automatic_location_error_unavailable
+                    }
+                )
+            )
+        },
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(id = R.string.general_btn_dialog_confirm))
+            }
+        }
+    )
 }
 
 @Preview
@@ -79,7 +142,8 @@ private fun CurrentLocationItemPreview() {
         Surface(tonalElevation = 3.dp) {
             CurrentLocationItem(
                 selected = false,
-                updatedAt = Instant.now().minusSeconds(120),
+                updatedAt = Instant.now().minusSeconds(7200),
+                error = CurrentLocationError.Unavailable,
                 onClick = {},
                 modifier = Modifier
                     .padding(16.dp)

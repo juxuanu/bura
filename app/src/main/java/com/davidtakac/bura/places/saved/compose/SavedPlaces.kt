@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.R
 import com.davidtakac.bura.places.Place
+import com.davidtakac.bura.places.current.CurrentLocationError
 import com.davidtakac.bura.places.compose.PlacesScaffold
 import com.davidtakac.bura.places.picker.PlacePickerResults
 import java.time.Instant
@@ -48,6 +49,7 @@ fun SavedPlaces(
     loading: Boolean,
     currentLocationSelected: Boolean,
     currentLocationUpdatedAt: Instant?,
+    currentLocationError: CurrentLocationError?,
     onCurrentLocationClick: () -> Unit,
     onPlaceClick: (Place) -> Unit,
     onPlaceDeleteClick: (Place) -> Unit
@@ -71,6 +73,7 @@ fun SavedPlaces(
             CurrentLocationItem(
                 selected = currentLocationSelected,
                 updatedAt = currentLocationUpdatedAt,
+                error = currentLocationError,
                 onClick = onCurrentLocationClick,
                 modifier = Modifier
                     .padding(horizontal = horizontalPadding, vertical = 16.dp)
