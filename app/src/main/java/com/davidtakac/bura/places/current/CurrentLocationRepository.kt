@@ -15,6 +15,9 @@ package com.davidtakac.bura.places.current
 import com.davidtakac.bura.places.Coordinates
 import com.davidtakac.bura.places.Location
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
@@ -22,6 +25,10 @@ import java.time.Instant
 import java.time.ZoneId
 
 class CurrentLocationRepository(private val root: File) {
+    private val _changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    // The current location is updated when the summary refreshes, not where it's shown
+    val changes: Flow<Unit> = _changes
+
     suspend fun getCurrentLocation(): CurrentLocation? =
         withContext(Dispatchers.IO) {
             val file = getFile()
@@ -39,7 +46,7 @@ class CurrentLocationRepository(private val root: File) {
             )
         }
 
-    suspend fun setCurrentLocation(current: CurrentLocation) =
+    suspend fun setCurrentLocation(current: CurrentLocation) {
         withContext(Dispatchers.IO) {
             val json = JSONObject().apply {
                 put("timeZone", current.location.timeZone.id)
@@ -49,6 +56,8 @@ class CurrentLocationRepository(private val root: File) {
             }
             getFile().writeText(json.toString())
         }
+        _changes.tryEmit(Unit)
+    }
 
     private fun getFile() = File(root, "current_location")
 }

@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.davidtakac.bura.App
 import com.davidtakac.bura.common.util.launchCatching
 import com.davidtakac.bura.places.Place
+import com.davidtakac.bura.places.current.CurrentLocationRepository
 import com.davidtakac.bura.places.saved.DeletePlace
 import com.davidtakac.bura.places.saved.GetSavedPlaces
 import com.davidtakac.bura.places.saved.SavedPlace
@@ -34,6 +35,7 @@ import java.time.zone.ZoneRulesException
 
 class PlacePickerViewModel(
     private val selectedPlaceRepo: SelectedPlaceRepository,
+    private val currentLocationRepo: CurrentLocationRepository,
     private val selectPlace: SelectPlace,
     private val getSavedPlaces: GetSavedPlaces,
     private val searchPlaces: SearchPlaces,
@@ -48,7 +50,13 @@ class PlacePickerViewModel(
             _state.value = _state.value.copy(
                 query = getSelectedPlaceQuery(),
                 currentLocationSelected = selectedPlaceRepo.isCurrentLocationSelected(),
+                currentLocationUpdatedAt = getCurrentLocationUpdatedAt(),
             )
+        }
+        viewModelScope.launchCatching(unexpectedErrorSetter) {
+            currentLocationRepo.changes.collect {
+                _state.value = _state.value.copy(currentLocationUpdatedAt = getCurrentLocationUpdatedAt())
+            }
         }
     }
 
@@ -65,6 +73,7 @@ class PlacePickerViewModel(
                 query = PlacePickerQuery.CurrentLocation,
                 active = false,
                 currentLocationSelected = true,
+                currentLocationUpdatedAt = getCurrentLocationUpdatedAt(),
                 results = null,
             )
         }
@@ -144,6 +153,7 @@ class PlacePickerViewModel(
             )
             _state.value = _state.value.copy(
                 results = PlacePickerResults.SavedPlaces(getSavedPlaces.invoke(Instant.now())),
+                currentLocationUpdatedAt = getCurrentLocationUpdatedAt(),
                 loading = false,
             )
         } else {
@@ -155,6 +165,9 @@ class PlacePickerViewModel(
             )
         }
     }
+
+    private suspend fun getCurrentLocationUpdatedAt() =
+        currentLocationRepo.getCurrentLocation()?.updatedAt
 
     private suspend fun getSelectedPlaceQuery(): PlacePickerQuery =
         if (selectedPlaceRepo.isCurrentLocationSelected()) {
@@ -170,6 +183,7 @@ class PlacePickerViewModel(
                 val container = (checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as App).container
                 return PlacePickerViewModel(
                     container.selectedPlaceRepo,
+                    container.currentLocationRepo,
                     container.selectPlace,
                     container.getSavedPlaces,
                     container.searchPlaces,
@@ -186,6 +200,7 @@ data class PlacePickerState(
     val query: PlacePickerQuery = PlacePickerQuery.Text(""),
     val active: Boolean = false,
     val currentLocationSelected: Boolean = false,
+    val currentLocationUpdatedAt: Instant? = null,
     val searchedPlaceToEdit: SearchedPlace? = null,
     val results: PlacePickerResults? = null
 )

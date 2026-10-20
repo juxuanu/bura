@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.R
+import com.davidtakac.bura.common.compose.relativeTimeString
 import com.davidtakac.bura.places.Place
 import com.davidtakac.bura.places.picker.PlacePickerQuery
 import com.davidtakac.bura.places.picker.PlacePickerResults
@@ -109,7 +110,9 @@ fun PlacePickerSearchBar(
     SearchBar(
         query = when (query) {
             is PlacePickerQuery.Text -> query.text
-            PlacePickerQuery.CurrentLocation -> stringResource(id = R.string.place_picker_current_location)
+            PlacePickerQuery.CurrentLocation -> state.currentLocationUpdatedAt
+                ?.let { stringResource(id = R.string.place_picker_automatic_location_value_age, relativeTimeString(it)) }
+                ?: stringResource(id = R.string.place_picker_automatic_location)
         },
         onQueryChange = onQueryChange,
         onSearch = onSearchClick,
@@ -146,6 +149,7 @@ fun PlacePickerSearchBar(
                     state = state.results,
                     loading = state.loading,
                     currentLocationSelected = state.currentLocationSelected,
+                    currentLocationUpdatedAt = state.currentLocationUpdatedAt,
                     onCurrentLocationClick = onCurrentLocationClick,
                     onPlaceClick = onPlaceClick,
                     onPlaceDeleteClick = onPlaceDeleteClick

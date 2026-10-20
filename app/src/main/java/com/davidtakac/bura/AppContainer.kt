@@ -62,7 +62,7 @@ class AppContainer(private val appContext: Context) {
     val selectedUnitsRepo by lazy { SelectedUnitsRepository(prefs) }
 
     private val savedPlacesRepo by lazy { SavedPlacesRepository(root) }
-    private val currentLocationRepo by lazy { CurrentLocationRepository(root) }
+    val currentLocationRepo by lazy { CurrentLocationRepository(root) }
     val getSavedPlaces get() = GetSavedPlaces(selectedUnitsRepo, selectedPlaceRepo, savedPlacesRepo, forecastRepo)
     val searchPlaces get() = SearchPlaces(userAgent)
     val selectPlace get() = SelectPlace(selectedPlaceRepo, savedPlacesRepo)

@@ -37,14 +37,16 @@ class UpdateCurrentLocation(
         if (!shouldLocate(current, now)) return
         // A location known to the device that is younger than the interval is as good as a new one
         val fix = locator.locate(maxLastKnownAge = minUpdateInterval) ?: return
-        if (current != null && !hasMoved(current, fix)) {
+        // A last known location can be older than the current one
+        if (current != null && !fix.time.isAfter(current.updatedAt)) return
+        if (current != null && !hasMoved(current, fix.coordinates)) {
             // Keep the location and its forecast, but remember it's still up to date
-            currentLocationRepo.setCurrentLocation(current.copy(updatedAt = now))
+            currentLocationRepo.setCurrentLocation(current.copy(updatedAt = fix.time))
             return
         }
         // The device's time zone is the one where the user is at the time of the fix
-        val location = Location(timeZone = ZoneId.systemDefault(), coordinates = fix)
-        currentLocationRepo.setCurrentLocation(CurrentLocation(location, updatedAt = now))
+        val location = Location(timeZone = ZoneId.systemDefault(), coordinates = fix.coordinates)
+        currentLocationRepo.setCurrentLocation(CurrentLocation(location, updatedAt = fix.time))
         // The previous location's forecast won't be used again, don't let them pile up while traveling
         if (current != null) forecastCacher.delete(current.location.coordinates)
     }

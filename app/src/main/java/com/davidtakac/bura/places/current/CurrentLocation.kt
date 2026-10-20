@@ -17,5 +17,6 @@ import java.time.Instant
 
 data class CurrentLocation(
     val location: Location,
+    // When the device was last fixed at this location
     val updatedAt: Instant
 )

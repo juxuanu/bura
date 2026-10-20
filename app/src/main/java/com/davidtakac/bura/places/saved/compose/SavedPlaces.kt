@@ -38,6 +38,7 @@ import com.davidtakac.bura.R
 import com.davidtakac.bura.places.Place
 import com.davidtakac.bura.places.compose.PlacesScaffold
 import com.davidtakac.bura.places.picker.PlacePickerResults
+import java.time.Instant
 
 private val horizontalPadding = 16.dp
 
@@ -46,6 +47,7 @@ fun SavedPlaces(
     state: PlacePickerResults.SavedPlaces,
     loading: Boolean,
     currentLocationSelected: Boolean,
+    currentLocationUpdatedAt: Instant?,
     onCurrentLocationClick: () -> Unit,
     onPlaceClick: (Place) -> Unit,
     onPlaceDeleteClick: (Place) -> Unit
@@ -68,6 +70,7 @@ fun SavedPlaces(
         Column(Modifier.fillMaxSize()) {
             CurrentLocationItem(
                 selected = currentLocationSelected,
+                updatedAt = currentLocationUpdatedAt,
                 onClick = onCurrentLocationClick,
                 modifier = Modifier
                     .padding(horizontal = horizontalPadding, vertical = 16.dp)

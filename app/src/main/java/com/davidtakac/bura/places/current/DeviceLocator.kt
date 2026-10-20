@@ -26,6 +26,7 @@ import com.davidtakac.bura.places.Coordinates
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Duration
+import java.time.Instant
 import kotlin.coroutines.resume
 
 private val fixTimeout = Duration.ofSeconds(30)
@@ -37,13 +38,15 @@ private val preferredProviders = listOf(
     LocationManager.GPS_PROVIDER
 )
 
+data class Fix(val coordinates: Coordinates, val time: Instant)
+
 class DeviceLocator(private val context: Context) {
     /**
      * Returns the newest last known location if it's younger than [maxLastKnownAge], otherwise
      * waits for a fresh fix, falling back to the newest last known location.
      */
     @SuppressLint("MissingPermission")
-    suspend fun locate(maxLastKnownAge: Duration): Coordinates? {
+    suspend fun locate(maxLastKnownAge: Duration): Fix? {
         val permission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (permission != PackageManager.PERMISSION_GRANTED) return null
 
@@ -57,7 +60,8 @@ class DeviceLocator(private val context: Context) {
             ?: preferredProviders.firstOrNull(providers::contains)
                 ?.let { withTimeoutOrNull(fixTimeout.toMillis()) { manager.awaitCurrentLocation(it) } }
             ?: lastKnown
-        return location?.let { Coordinates(it.latitude, it.longitude) }
+        // Last known locations can be old, so their time is when they were fixed, not now
+        return location?.let { Fix(Coordinates(it.latitude, it.longitude), time = Instant.now() - it.age) }
     }
 
     @SuppressLint("MissingPermission")

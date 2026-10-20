@@ -13,6 +13,7 @@
 package com.davidtakac.bura.places.saved.compose
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,33 +31,44 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.R
+import com.davidtakac.bura.common.compose.relativeTimeString
 import com.davidtakac.bura.theme.AppTheme
+import java.time.Instant
 
 @Composable
 fun CurrentLocationItem(
     selected: Boolean,
+    updatedAt: Instant?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+    Column(
+        Modifier
             .clickable(onClick = onClick)
             .then(modifier)
     ) {
-        Icon(
-            painter = painterResource(id = if (selected) R.drawable.location_on else R.drawable.my_location),
-            contentDescription = null,
-            modifier = Modifier
-                .padding(end = 2.dp)
-                .size(16.dp)
-        )
-        Text(
-            text = stringResource(id = R.string.place_picker_current_location),
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(id = if (selected) R.drawable.location_on else R.drawable.my_location),
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(end = 2.dp)
+                    .size(16.dp)
+            )
+            Text(
+                text = stringResource(id = R.string.place_picker_automatic_location),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        updatedAt?.let {
+            Text(
+                text = relativeTimeString(it),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1
+            )
+        }
     }
 }
 
@@ -67,6 +79,7 @@ private fun CurrentLocationItemPreview() {
         Surface(tonalElevation = 3.dp) {
             CurrentLocationItem(
                 selected = false,
+                updatedAt = Instant.now().minusSeconds(120),
                 onClick = {},
                 modifier = Modifier
                     .padding(16.dp)
