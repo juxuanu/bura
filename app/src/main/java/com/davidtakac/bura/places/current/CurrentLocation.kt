@@ -12,10 +12,17 @@
 
 package com.davidtakac.bura.places.current
 
-import com.davidtakac.bura.places.Coordinates
+import com.davidtakac.bura.places.Location
 import java.time.Instant
 
 data class CurrentLocation(
-    val coordinates: Coordinates,
+    val location: Location,
+    // When the device was last fixed at this location
     val updatedAt: Instant
 )
+
+// Why the current location couldn't be updated
+enum class CurrentLocationError {
+    PermissionDenied,
+    Unavailable
+}

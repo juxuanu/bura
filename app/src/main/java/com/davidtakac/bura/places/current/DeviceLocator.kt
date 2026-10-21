@@ -19,12 +19,14 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.CancellationSignal
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import com.davidtakac.bura.places.Coordinates
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Duration
+import java.time.Instant
 import kotlin.coroutines.resume
 
 private val fixTimeout = Duration.ofSeconds(30)
@@ -36,19 +38,38 @@ private val preferredProviders = listOf(
     LocationManager.GPS_PROVIDER
 )
 
-class DeviceLocator(private val context: Context) {
+data class Fix(val coordinates: Coordinates, val time: Instant)
+
+interface Locator {
+    fun hasPermission(): Boolean
+    suspend fun locate(maxLastKnownAge: Duration): Fix?
+}
+
+class DeviceLocator(private val context: Context) : Locator {
+    override fun hasPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Returns the newest last known location if it's younger than [maxLastKnownAge], otherwise
+     * waits for a fresh fix, falling back to the newest last known location.
+     */
     @SuppressLint("MissingPermission")
-    suspend fun locate(): Coordinates? {
-        val permission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (permission != PackageManager.PERMISSION_GRANTED) return null
+    override suspend fun locate(maxLastKnownAge: Duration): Fix? {
+        if (!hasPermission()) return null
 
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
         // Only returns providers that are enabled and allowed by the granted permissions
         val providers = manager.getProviders(true)
-        val location = preferredProviders.firstOrNull(providers::contains)
-            ?.let { withTimeoutOrNull(fixTimeout.toMillis()) { manager.awaitCurrentLocation(it) } }
-            ?: providers.mapNotNull(manager::getLastKnownLocation).maxByOrNull { it.elapsedRealtimeNanos }
-        return location?.let { Coordinates(it.latitude, it.longitude) }
+        val lastKnown = providers.mapNotNull(manager::getLastKnownLocation).maxByOrNull { it.elapsedRealtimeNanos }
+        // With approximate location, Android limits fresh fixes to one every 10 minutes, so
+        // waiting for one would often time out while a recent enough location is already known
+        val location = lastKnown?.takeIf { it.age < maxLastKnownAge }
+            ?: preferredProviders.firstOrNull(providers::contains)
+                ?.let { withTimeoutOrNull(fixTimeout.toMillis()) { manager.awaitCurrentLocation(it) } }
+            ?: lastKnown
+        // Last known locations can be old, so their time is when they were fixed, not now
+        return location?.let { Fix(Coordinates(it.latitude, it.longitude), time = Instant.now() - it.age) }
     }
 
     @SuppressLint("MissingPermission")
@@ -63,4 +84,7 @@ class DeviceLocator(private val context: Context) {
                 ContextCompat.getMainExecutor(context)
             ) { cont.resume(it) }
         }
+
+    private val Location.age: Duration
+        get() = Duration.ofNanos(SystemClock.elapsedRealtimeNanos() - elapsedRealtimeNanos)
 }

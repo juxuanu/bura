@@ -14,9 +14,10 @@ package com.davidtakac.bura.places.current
 
 import com.davidtakac.bura.forecast.cache.ForecastCacher
 import com.davidtakac.bura.places.Coordinates
-import com.davidtakac.bura.places.selected.SelectedPlaceRepository
+import com.davidtakac.bura.places.Location
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 import kotlin.math.cos
 import kotlin.math.sqrt
 
@@ -27,26 +28,42 @@ private val minUpdateInterval = Duration.ofMinutes(30)
 private const val EARTH_RADIUS_KM = 6371.0
 
 class UpdateCurrentLocation(
-    private val locator: DeviceLocator,
-    private val selectedPlaceRepo: SelectedPlaceRepository,
+    private val locator: Locator,
+    private val currentLocationRepo: CurrentLocationRepository,
     private val forecastCacher: ForecastCacher,
 ) {
     suspend operator fun invoke(now: Instant) {
-        val current = selectedPlaceRepo.getCurrentLocation()
-        val fix = locator.locate() ?: return
-        if (!shouldUpdate(current, fix, now)) return
-        selectedPlaceRepo.setCurrentLocation(CurrentLocation(fix, updatedAt = now))
+        val current = currentLocationRepo.getCurrentLocation()
+        if (!shouldLocate(current, now)) return
+        currentLocationRepo.setError(update(current))
+    }
+
+    // Returns why the current location couldn't be updated, if it couldn't
+    private suspend fun update(current: CurrentLocation?): CurrentLocationError? {
+        if (!locator.hasPermission()) return CurrentLocationError.PermissionDenied
+        // A location known to the device that is younger than the interval is as good as a new one
+        val fix = locator.locate(maxLastKnownAge = minUpdateInterval) ?: return CurrentLocationError.Unavailable
+        // A last known location can be older than the current one
+        if (current != null && !fix.time.isAfter(current.updatedAt)) return CurrentLocationError.Unavailable
+        if (current != null && !hasMoved(current, fix.coordinates)) {
+            // Keep the location and its forecast, but remember it's still up to date
+            currentLocationRepo.setCurrentLocation(current.copy(updatedAt = fix.time))
+            return null
+        }
+        // The device's time zone is the one where the user is at the time of the fix
+        val location = Location(timeZone = ZoneId.systemDefault(), coordinates = fix.coordinates)
+        currentLocationRepo.setCurrentLocation(CurrentLocation(location, updatedAt = fix.time))
         // The previous location's forecast won't be used again, don't let them pile up while traveling
-        if (current != null) forecastCacher.delete(current.coordinates)
+        if (current != null) forecastCacher.delete(current.location.coordinates)
+        return null
     }
 }
 
-fun shouldUpdate(current: CurrentLocation?, fix: Coordinates, now: Instant): Boolean {
-    if (current == null) return true
-    val waitedLongEnough = Duration.between(current.updatedAt, now) >= minUpdateInterval
-    val movedFarEnough = current.coordinates.distanceKmTo(fix) >= MIN_UPDATE_DISTANCE_KM
-    return waitedLongEnough && movedFarEnough
-}
+fun shouldLocate(current: CurrentLocation?, now: Instant): Boolean =
+    current == null || Duration.between(current.updatedAt, now) >= minUpdateInterval
+
+fun hasMoved(current: CurrentLocation, fix: Coordinates): Boolean =
+    current.location.coordinates.distanceKmTo(fix) >= MIN_UPDATE_DISTANCE_KM
 
 // Equirectangular approximation, accurate enough at the distances that matter here
 private fun Coordinates.distanceKmTo(other: Coordinates): Double {

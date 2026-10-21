@@ -19,14 +19,21 @@
     <string name="general_btn_select_place">Select place</string>
     <string name="general_btn_dialog_confirm">OK</string>
     <string name="general_btn_dialog_cancel">Cancel</string>
+    <string name="general_time_now">Now</string>
+    <string name="general_time_value_minutes_ago">%dm ago</string>
+    <string name="general_time_value_hours_ago">%dh ago</string>
+    <string name="general_time_value_days_ago">%dd ago</string>
 
     <string name="credit_weather">Weather data by Open-Meteo.com</string>
     <string name="credit_geocoding">Geocoding data by Open-Meteo.com</string>
 
     <string name="place_picker_hint_search">Search places…</string>
     <string name="place_picker_title_saved_places">Saved places</string>
-    <string name="place_picker_current_location">Current location</string>
-    <string name="place_picker_locating">Locating…</string>
+    <string name="place_picker_automatic_location">Automatic location</string>
+    <string name="place_picker_automatic_location_value_age">Automatic location · %s</string>
+    <string name="place_picker_automatic_location_error_title">Location not updated</string>
+    <string name="place_picker_automatic_location_error_permission_denied">Location permission was revoked. Allow it again in the settings to keep the automatic location up to date.</string>
+    <string name="place_picker_automatic_location_error_unavailable">Your location could not be found. Make sure location is turned on.</string>
     <string name="place_picker_title_search_results">Search results</string>
     <string name="place_picker_error_no_internet">You seem to be offline. Connect to the Internet and try again.</string>
     <string name="place_picker_error_value_no_results_for">No results for \"%s\".</string>

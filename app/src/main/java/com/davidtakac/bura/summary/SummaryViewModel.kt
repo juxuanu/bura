@@ -59,9 +59,6 @@ class SummaryViewModel(
     private val _state = MutableStateFlow<SummaryState>(SummaryState.Initial)
     val state = _state.asStateFlow()
 
-    private val _locating = MutableStateFlow(false)
-    val locating = _locating.asStateFlow()
-
     fun getSummary() {
         viewModelScope.launchCatching(unexpectedErrorSetter) {
             if (_state.value == SummaryState.Loading) {
@@ -74,15 +71,12 @@ class SummaryViewModel(
         }
     }
     
+    private suspend fun updateCurrentLocationIfSelected() {
+        if (placeRepo.isCurrentLocationSelected()) updateCurrentLocation(Instant.now())
+    }
+
     private suspend fun getState(): SummaryState {
-        if (placeRepo.isCurrentLocationSelected()) {
-            _locating.value = true
-            try {
-                updateCurrentLocation(Instant.now())
-            } finally {
-                _locating.value = false
-            }
-        }
+        updateCurrentLocationIfSelected()
         val location = placeRepo.getSelectedPlace()?.location ?: return SummaryState.NoSelectedPlace
         val coords = location.coordinates
         val units = unitsRepo.getSelectedUnits()

@@ -23,13 +23,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -39,9 +42,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.R
+import com.davidtakac.bura.common.compose.relativeTimeString
 import com.davidtakac.bura.places.Place
+import com.davidtakac.bura.places.picker.PlacePickerQuery
 import com.davidtakac.bura.places.picker.PlacePickerResults
 import com.davidtakac.bura.places.picker.PlacePickerState
+import com.davidtakac.bura.places.saved.compose.CurrentLocationErrorDialog
 import com.davidtakac.bura.places.saved.compose.SavedPlaces
 import com.davidtakac.bura.places.search.SearchedPlace
 import com.davidtakac.bura.places.search.compose.SearchedPlaces
@@ -82,8 +88,7 @@ private val AnimationExitFloatSpec: FiniteAnimationSpec<Dp> = tween(
 @Composable
 fun PlacePickerSearchBar(
     state: PlacePickerState,
-    locating: Boolean,
-    query: String,
+    query: PlacePickerQuery,
     onQueryChange: (query: String) -> Unit,
     onQueryClearClick: () -> Unit,
     active: Boolean,
@@ -106,11 +111,18 @@ fun PlacePickerSearchBar(
         label = "Search bar horizontal padding"
     )
 
+    val currentLocationError = state.currentLocationError.takeIf { query == PlacePickerQuery.CurrentLocation }
+    var showCurrentLocationError by remember { mutableStateOf(false) }
+    if (showCurrentLocationError && currentLocationError != null) {
+        CurrentLocationErrorDialog(error = currentLocationError, onDismiss = { showCurrentLocationError = false })
+    }
+
     SearchBar(
-        query = if (!active && state.currentLocationSelected) {
-            stringResource(id = if (locating) R.string.place_picker_locating else R.string.place_picker_current_location)
-        } else {
-            query
+        query = when (query) {
+            is PlacePickerQuery.Text -> query.text
+            PlacePickerQuery.CurrentLocation -> state.currentLocationUpdatedAt
+                ?.let { stringResource(id = R.string.place_picker_automatic_location_value_age, relativeTimeString(it)) }
+                ?: stringResource(id = R.string.place_picker_automatic_location)
         },
         onQueryChange = onQueryChange,
         onSearch = onSearchClick,
@@ -119,7 +131,9 @@ fun PlacePickerSearchBar(
         leadingIcon = {
             PinOrBackButton(
                 active = active,
-                onBackClick = { onActiveChange(false) }
+                warning = currentLocationError != null,
+                onBackClick = { onActiveChange(false) },
+                onWarningClick = { showCurrentLocationError = true }
             )
         },
         trailingIcon = {
@@ -147,6 +161,8 @@ fun PlacePickerSearchBar(
                     state = state.results,
                     loading = state.loading,
                     currentLocationSelected = state.currentLocationSelected,
+                    currentLocationUpdatedAt = state.currentLocationUpdatedAt,
+                    currentLocationError = state.currentLocationError,
                     onCurrentLocationClick = onCurrentLocationClick,
                     onPlaceClick = onPlaceClick,
                     onPlaceDeleteClick = onPlaceDeleteClick
@@ -163,13 +179,26 @@ fun PlacePickerSearchBar(
 }
 
 @Composable
-private fun PinOrBackButton(active: Boolean, onBackClick: () -> Unit) {
+private fun PinOrBackButton(
+    active: Boolean,
+    warning: Boolean,
+    onBackClick: () -> Unit,
+    onWarningClick: () -> Unit
+) {
     Crossfade(targetState = active, label = "Pin to back button") {
         if (it) {
             IconButton(onClick = onBackClick) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = null
+                )
+            }
+        } else if (warning) {
+            IconButton(onClick = onWarningClick) {
+                Icon(
+                    painter = painterResource(id = R.drawable.warning),
+                    contentDescription = stringResource(id = R.string.place_picker_automatic_location_error_title),
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
         } else {
